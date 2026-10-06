@@ -22,11 +22,11 @@ const spendingTypes = [
 const SpendingTypeSelector = ({ value, onChange }) => {
   return (
     <section>
-      <label className="mb-3 block text-sm font-medium text-gray-600">
+      <label className="mb-3 block text-sm font-medium text-[#5f5b54]">
         What kind of spending was this?
       </label>
 
-      <div className="space-y-2">
+      <div className="grid gap-2 sm:grid-cols-2">
         {spendingTypes.map((type) => {
           const isSelected = value === type.name;
 
@@ -35,27 +35,31 @@ const SpendingTypeSelector = ({ value, onChange }) => {
               key={type.name}
               type="button"
               onClick={() => onChange(type.name)}
-              className={`flex w-full items-center justify-between rounded-2xl px-4 py-4 text-left transition ${
+              className={`flex min-h-19.5 items-center justify-between rounded-2xl border px-4 py-4 text-left transition active:scale-[0.99] ${
                 isSelected
-                  ? "bg-gray-900 text-white"
-                  : "bg-white text-gray-900 ring-1 ring-gray-100 hover:bg-gray-100"
+                  ? "border-[#242321] bg-[#242321] text-white shadow-sm"
+                  : "border-[#e7e2d8] bg-white text-[#242321] hover:border-[#d5cec1] hover:bg-[#faf9f6]"
               }`}
             >
               <div>
                 <p className="font-semibold">{type.name}</p>
 
                 <p
-                  className={`text-sm ${
+                  className={`mt-1 text-sm ${
                     isSelected
-                      ? "text-gray-300"
-                      : "text-gray-500"
+                      ? "text-[#d8d3c9]"
+                      : "text-[#8b867c]"
                   }`}
                 >
                   {type.description}
                 </p>
               </div>
 
-              {isSelected && <FiCheck size={20} />}
+              {isSelected && (
+                <span className="ml-3 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#b8873d] text-white">
+                  <FiCheck size={15} />
+                </span>
+              )}
             </button>
           );
         })}

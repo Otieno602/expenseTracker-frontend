@@ -33,21 +33,23 @@ const ExpenseForm = () => {
   };
 
   const isFormValid =
-    formData.amount && formData.category && formData.type;
+    Number(formData.amount) > 0 &&
+    formData.category &&
+    formData.type;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-7">
+    <form onSubmit={handleSubmit} className="w-full min-w-0 space-y-7">
       {/* Amount */}
       <section>
         <label
           htmlFor="amount"
-          className="mb-2 block text-sm font-medium text-gray-600"
+          className="mb-3 block text-sm font-medium text-[#5f5b54]"
         >
-          Amount
+          How much did you spend?
         </label>
 
-        <div className="flex items-center rounded-2xl bg-white px-4 py-4 shadow-sm ring-1 ring-gray-100">
-          <span className="mr-3 text-lg font-semibold text-gray-500">
+        <div className="flex w-full min-w-0 items-center overflow-hidden rounded-2xl border border-[#e7e2d8] bg-white px-4 py-4 transition focus-within:border-[#b8873d] focus-within:ring-4 focus-within:ring-[#b8873d]/10 sm:px-5 sm:py-5">
+          <span className="mr-3 text-base font-semibold text-[#8b867c] sm:text-lg">
             KSh
           </span>
 
@@ -62,7 +64,7 @@ const ExpenseForm = () => {
             onChange={(event) =>
               handleChange("amount", event.target.value)
             }
-            className="w-full bg-transparent text-3xl font-bold outline-none placeholder:text-gray-300"
+            className="min-w-0 flex-1 bg-transparent text-3xl font-semibold tracking-tight text-[#242321] outline-none placeholder:text-[#d8d3c9] sm:text-4xl"
           />
         </div>
       </section>
@@ -83,10 +85,10 @@ const ExpenseForm = () => {
       <section>
         <label
           htmlFor="note"
-          className="mb-2 block text-sm font-medium text-gray-600"
+          className="mb-3 block text-sm font-medium text-[#5f5b54]"
         >
           Note{" "}
-          <span className="font-normal text-gray-400">
+          <span className="font-normal text-[#a29d94]">
             (optional)
           </span>
         </label>
@@ -99,18 +101,18 @@ const ExpenseForm = () => {
           onChange={(event) =>
             handleChange("note", event.target.value)
           }
-          className="w-full resize-none rounded-2xl bg-white px-4 py-4 text-sm outline-none ring-1 ring-gray-100 placeholder:text-gray-400 focus:ring-2 focus:ring-gray-900"
+          className="w-full resize-none rounded-2xl border border-[#e7e2d8] bg-white px-4 py-4 text-sm text-[#242321] outline-none transition placeholder:text-[#aaa49a] focus:border-[#b8873d] focus:ring-4 focus:ring-[#b8873d]/10"
         />
       </section>
 
-      {/* Submit */}
+      {/* Save */}
       <button
         type="submit"
         disabled={!isFormValid}
-        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gray-900 px-5 py-4 font-semibold text-white transition hover:bg-gray-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-gray-300"
+        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#242321] px-5 py-4 font-semibold text-white shadow-sm transition hover:bg-[#34322f] active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-[#d7d2c8] disabled:text-[#9a958b] disabled:shadow-none sm:py-4.5"
       >
-        <FiCheck size={20} />
-        Save Expense
+        <FiCheck size={19} />
+        Save expense
       </button>
     </form>
   );
