@@ -1,12 +1,17 @@
+import { useNavigate } from "react-router-dom";
 import { FiArrowLeft, FiEye } from "react-icons/fi";
 import ExpenseForm from "../components/expenses/ExpenseForm";
 
 const AddExpense = () => {
+
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#f6f4ef] text-[#242321]">
       <main className="mx-auto min-h-screen w-full max-w-5xl min-w-0 px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
         <header className="mx-auto mb-8 flex max-w-2xl items-center gap-4 sm:mb-10">
           <button
+            onClick={() => navigate("/")}
             type="button"
             aria-label="Go back"
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#e7e2d8] bg-white text-[#242321] shadow-sm transition hover:bg-[#faf9f6] active:scale-95"
