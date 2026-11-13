@@ -5,6 +5,8 @@ import ExpenseDetailsModal from "../components/expenses/ExpenseDetailsModal";
 import EditExpenseModal from "../components/expenses/EditExpenseModal";
 import DeleteExpenseModal from "../components/expenses/DeleteExpenseModal";
 
+import API_URL from "../services/api";
+
 const categories = [
   "Food",
   "Transport",
@@ -48,7 +50,7 @@ const Transactions = () => {
   useEffect(() => {
     const fetchExpenses = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/expenses");
+        const response = await fetch(`${API_URL}/api/expenses`);
 
         if (!response.ok) {
           throw new Error("Failed to fetch expenses.");
@@ -138,7 +140,7 @@ const Transactions = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:5000/api/expenses/${selectedExpense.id}`,
+        `${API_URL}/api/expenses/${selectedExpense.id}`,
         {
           method: "PUT",
           headers: {
@@ -178,7 +180,7 @@ const Transactions = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:5000/api/expenses/${selectedExpense.id}`,
+        `${API_URL}/api/expenses/${selectedExpense.id}`,
         {
           method: "DELETE",
         },
