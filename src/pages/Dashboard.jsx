@@ -55,9 +55,32 @@ const Dashboard = () => {
   const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
   const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
-  // Today starts at local midnight
+  // Compare the same elapsed period in the previous month.
+  const previousMonthComparisonDay = Math.min(
+    now.getDate(),
+    new Date(now.getFullYear(), now.getMonth(), 0).getDate(),
+  );
+
+  const previousMonthComparisonEnd = new Date(
+    now.getFullYear(),
+    now.getMonth() - 1,
+    previousMonthComparisonDay,
+    now.getHours(),
+    now.getMinutes(),
+    now.getSeconds(),
+    now.getMilliseconds(),
+  );
+
+  // Today and yesterday
   const todayStart = new Date(now);
   todayStart.setHours(0, 0, 0, 0);
+
+  const yesterdayStart = new Date(todayStart);
+  yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+
+  // Yesterday at the equivalent time of day
+  const yesterdaySameTimeEnd = new Date(now);
+  yesterdaySameTimeEnd.setDate(yesterdaySameTimeEnd.getDate() - 1);
 
   // Weeks start on Monday
   const currentWeekStart = new Date(now);
@@ -88,6 +111,18 @@ const Dashboard = () => {
     });
   }, [expenses, previousMonthStart.getTime(), monthStart.getTime()]);
 
+  const previousMonthComparisonExpenses = useMemo(() => {
+    return expenses.filter((expense) => {
+      const date = new Date(expense.date);
+
+      return date >= previousMonthStart && date <= previousMonthComparisonEnd;
+    });
+  }, [
+    expenses,
+    previousMonthStart.getTime(),
+    previousMonthComparisonEnd.getTime(),
+  ]);
+
   const sortedExpenses = useMemo(() => {
     return [...expenses].sort((a, b) => new Date(b.date) - new Date(a.date));
   }, [expenses]);
@@ -99,6 +134,21 @@ const Dashboard = () => {
     });
   }, [expenses, todayStart.getTime(), now.getTime()]);
 
+  const yesterdayExpenses = useMemo(() => {
+    return expenses.filter((expense) => {
+      const date = new Date(expense.date);
+      return date >= yesterdayStart && date < todayStart;
+    });
+  }, [expenses, yesterdayStart.getTime(), todayStart.getTime()]);
+
+  const yesterdayComparableExpenses = useMemo(() => {
+    return expenses.filter((expense) => {
+      const date = new Date(expense.date);
+
+      return date >= yesterdayStart && date <= yesterdaySameTimeEnd;
+    });
+  }, [expenses, yesterdayStart.getTime(), yesterdaySameTimeEnd.getTime()]);
+
   const currentWeekExpenses = useMemo(() => {
     return expenses.filter((expense) => {
       const date = new Date(expense.date);
@@ -106,9 +156,20 @@ const Dashboard = () => {
     });
   }, [expenses, currentWeekStart.getTime(), now.getTime()]);
 
+  // Full previous calendar week: Monday to Sunday
   const previousWeekExpenses = useMemo(() => {
     return expenses.filter((expense) => {
       const date = new Date(expense.date);
+
+      return date >= previousWeekStart && date < currentWeekStart;
+    });
+  }, [expenses, previousWeekStart.getTime(), currentWeekStart.getTime()]);
+
+  // Equivalent elapsed period from the previous week
+  const previousWeekComparisonExpenses = useMemo(() => {
+    return expenses.filter((expense) => {
+      const date = new Date(expense.date);
+
       return date >= previousWeekStart && date <= previousWeekPeriodEnd;
     });
   }, [expenses, previousWeekStart.getTime(), previousWeekPeriodEnd.getTime()]);
@@ -123,7 +184,22 @@ const Dashboard = () => {
     0,
   );
 
+  const previousMonthComparisonTotal = previousMonthComparisonExpenses.reduce(
+    (total, expense) => total + Number(expense.amount),
+    0,
+  );
+
   const todayTotal = todayExpenses.reduce(
+    (total, expense) => total + Number(expense.amount),
+    0,
+  );
+
+  const yesterdayTotal = yesterdayExpenses.reduce(
+    (total, expense) => total + Number(expense.amount),
+    0,
+  );
+
+  const yesterdayComparableTotal = yesterdayComparableExpenses.reduce(
     (total, expense) => total + Number(expense.amount),
     0,
   );
@@ -138,16 +214,29 @@ const Dashboard = () => {
     0,
   );
 
-  const weeklyChange =
-    previousWeekTotal > 0
-      ? ((currentWeekTotal - previousWeekTotal) / previousWeekTotal) * 100
+  const previousWeekComparisonTotal = previousWeekComparisonExpenses.reduce(
+    (total, expense) => total + Number(expense.amount),
+    0,
+  );
+
+  const dailyChange =
+    yesterdayComparableTotal > 0
+      ? ((todayTotal - yesterdayComparableTotal) / yesterdayComparableTotal) *
+        100
       : null;
 
-  const averageDaily = currentMonthTotal / now.getDate();
+  const weeklyChange =
+    previousWeekComparisonTotal > 0
+      ? ((currentWeekTotal - previousWeekComparisonTotal) /
+          previousWeekComparisonTotal) *
+        100
+      : null;
 
   const monthlyChange =
-    previousMonthTotal > 0
-      ? ((currentMonthTotal - previousMonthTotal) / previousMonthTotal) * 100
+    previousMonthComparisonTotal > 0
+      ? ((currentMonthTotal - previousMonthComparisonTotal) /
+          previousMonthComparisonTotal) *
+        100
       : null;
 
   const typeBreakdown = spendingTypes.map((type) => {
@@ -172,6 +261,50 @@ const Dashboard = () => {
   ).sort((a, b) => b.total - a.total);
 
   const recentExpenses = sortedExpenses.slice(0, 5);
+
+  const recentExpenseGroups = recentExpenses.reduce((groups, expense) => {
+    const date = new Date(expense.date);
+
+    const dateKey = [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, "0"),
+      String(date.getDate()).padStart(2, "0"),
+    ].join("-");
+
+    let group = groups[groups.length - 1];
+
+    if (!group || group.dateKey !== dateKey) {
+      group = {
+        dateKey,
+        date,
+        expenses: [],
+      };
+
+      groups.push(group);
+    }
+
+    group.expenses.push(expense);
+
+    return groups;
+  }, []);
+
+  const formatGroupDate = (date) => {
+    const groupDate = new Date(date);
+    groupDate.setHours(0, 0, 0, 0);
+
+    const dayDifference = Math.round(
+      (todayStart - groupDate) / (1000 * 60 * 60 * 24),
+    );
+
+    if (dayDifference === 0) return "Today";
+    if (dayDifference === 1) return "Yesterday";
+
+    return new Intl.DateTimeFormat("en-KE", {
+      weekday: "long",
+      day: "numeric",
+      month: "short",
+    }).format(date);
+  };
 
   const formatAmount = (amount) =>
     new Intl.NumberFormat("en-KE", {
@@ -277,7 +410,7 @@ const Dashboard = () => {
         {!isLoading && !error && hasExpenses && (
           <>
             {/* Summary cards */}
-            <section className="mb-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <section className="mb-8 grid grid-cols-2 gap-3 lg:grid-cols-3">
               <div className="col-span-2 rounded-24px bg-[#242321] p-5 text-white sm:p-6 lg:col-span-1">
                 <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#c8c1b5]">
                   Spent this month
@@ -297,16 +430,6 @@ const Dashboard = () => {
 
               <div className="rounded-24px border border-[#e7e2d8] bg-[#fbfaf7] p-4 sm:p-5">
                 <p className="text-xs font-medium text-[#8b867c]">
-                  Daily average
-                </p>
-                <p className="mt-3 text-xl font-semibold tracking-tight sm:text-2xl">
-                  KSh {formatAmount(averageDaily)}
-                </p>
-                <p className="mt-2 text-xs text-[#a29d94]">Per calendar day</p>
-              </div>
-
-              <div className="rounded-24px border border-[#e7e2d8] bg-[#fbfaf7] p-4 sm:p-5">
-                <p className="text-xs font-medium text-[#8b867c]">
                   Previous month
                 </p>
                 <p className="mt-3 text-xl font-semibold tracking-tight sm:text-2xl">
@@ -319,7 +442,7 @@ const Dashboard = () => {
 
               <div className="rounded-24px border border-[#e7e2d8] bg-[#fbfaf7] p-4 sm:p-5">
                 <p className="text-xs font-medium text-[#8b867c]">
-                  Month comparison
+                  Month-to-date comparison
                 </p>
 
                 {monthlyChange === null ? (
@@ -367,17 +490,47 @@ const Dashboard = () => {
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
                 <div className="rounded-24px border border-[#e7e2d8] bg-[#fbfaf7] p-4 sm:p-5">
                   <p className="text-xs font-medium text-[#8b867c]">
                     Spent today
                   </p>
+
                   <p className="mt-3 text-xl font-semibold tracking-tight sm:text-2xl">
                     KSh {formatAmount(todayTotal)}
                   </p>
+
                   <p className="mt-2 text-xs text-[#a29d94]">
                     {todayExpenses.length} spending records
                   </p>
+
+                  <p className="mt-2 text-xs font-medium text-[#8b867c]">
+                    {dailyChange === null
+                      ? todayTotal > 0
+                        ? "No spending by this time yesterday"
+                        : "No spending so far today"
+                      : dailyChange > 0
+                        ? `${Math.abs(dailyChange).toFixed(1)}% more than yesterday at this time`
+                        : dailyChange < 0
+                          ? `${Math.abs(dailyChange).toFixed(1)}% less than yesterday at this time`
+                          : "Same as yesterday at this time"}
+                  </p>
+                </div>
+
+                <div className="rounded-24px border border-[#e7e2d8] bg-[#fbfaf7] p-4 sm:p-5">
+                  <p className="text-xs font-medium text-[#8b867c]">
+                    Spent yesterday
+                  </p>
+
+                  <p className="mt-3 text-xl font-semibold tracking-tight sm:text-2xl">
+                    KSh {formatAmount(yesterdayTotal)}
+                  </p>
+
+                  <p className="mt-2 text-xs text-[#a29d94]">
+                    {yesterdayExpenses.length} spending records
+                  </p>
+
+                  <p className="mt-2 text-xs text-[#a29d94]">Full day total</p>
                 </div>
 
                 <div className="rounded-24px border border-[#e7e2d8] bg-[#fbfaf7] p-4 sm:p-5">
@@ -408,39 +561,19 @@ const Dashboard = () => {
                   </p>
 
                   {weeklyChange === null ? (
-                    <>
-                      <p className="mt-3 text-xl font-semibold">—</p>
-                      <p className="mt-2 text-xs text-[#a29d94]">
-                        {currentWeekTotal > 0
-                          ? "No spending last week"
-                          : "No comparison yet"}
-                      </p>
-                    </>
+                    <p className="mt-2 text-xs text-[#8b867c]">
+                      {currentWeekTotal > 0
+                        ? "No spending during this period last week"
+                        : "No spending recorded in either period"}
+                    </p>
                   ) : (
-                    <>
-                      <div className="mt-3 flex items-center gap-1">
-                        {weeklyChange > 0 ? (
-                          <FiArrowUpRight size={21} className="text-red-600" />
-                        ) : weeklyChange < 0 ? (
-                          <FiArrowDownRight
-                            size={21}
-                            className="text-emerald-700"
-                          />
-                        ) : null}
-
-                        <p className="text-xl font-semibold tracking-tight sm:text-2xl">
-                          {Math.abs(weeklyChange).toFixed(1)}%
-                        </p>
-                      </div>
-
-                      <p className="mt-2 text-xs text-[#a29d94]">
-                        {weeklyChange > 0
-                          ? "More than last week"
-                          : weeklyChange < 0
-                            ? "Less than last week"
-                            : "Same as last week"}
-                      </p>
-                    </>
+                    <p className="mt-2 text-xs text-[#8b867c]">
+                      {weeklyChange > 0
+                        ? `${Math.abs(weeklyChange).toFixed(1)}% more than last week`
+                        : weeklyChange < 0
+                          ? `${Math.abs(weeklyChange).toFixed(1)}% less than last week`
+                          : "Same spending as last week"}
+                    </p>
                   )}
                 </div>
               </div>
@@ -567,36 +700,44 @@ const Dashboard = () => {
                 </button>
               </div>
 
-              {recentExpenses.length > 0 ? (
+              {recentExpenseGroups.length > 0 ? (
                 <div>
-                  {recentExpenses.map((expense, index) => (
-                    <div
-                      key={expense.id}
-                      className={`flex items-center justify-between gap-4 px-5 py-4 sm:px-7 ${
-                        index !== recentExpenses.length - 1
-                          ? "border-t border-[#e7e2d8]"
-                          : "border-t border-[#e7e2d8]"
-                      }`}
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold">
-                          {expense.category}
-                        </p>
-                        <p className="mt-1 truncate text-xs text-[#8b867c]">
-                          {expense.note || expense.type} ·{" "}
-                          {formatDate(expense.date)}
+                  {recentExpenseGroups.map((group) => (
+                    <div key={group.dateKey}>
+                      {/* Date heading */}
+                      <div className="border-t border-[#e7e2d8] bg-[#f6f4ef] px-5 py-3 sm:px-7">
+                        <p className="text-xs font-semibold uppercase tracking-0.1em text-[#8b867c]">
+                          {formatGroupDate(group.date)}
                         </p>
                       </div>
 
-                      <p className="shrink-0 text-sm font-semibold">
-                        KSh {formatAmount(expense.amount)}
-                      </p>
+                      {/* Transactions for this date */}
+                      {group.expenses.map((expense) => (
+                        <div
+                          key={expense.id}
+                          className="flex items-center justify-between gap-4 border-t border-[#e7e2d8] px-5 py-4 sm:px-7"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold">
+                              {expense.category}
+                            </p>
+
+                            <p className="mt-1 truncate text-xs text-[#8b867c]">
+                              {expense.note || expense.type}
+                            </p>
+                          </div>
+
+                          <p className="shrink-0 text-sm font-semibold">
+                            KSh {formatAmount(expense.amount)}
+                          </p>
+                        </div>
+                      ))}
                     </div>
                   ))}
                 </div>
               ) : (
                 <p className="border-t border-[#e7e2d8] px-5 py-6 text-sm text-[#8b867c]">
-                  No transactions recorded this month yet.
+                  No transactions recorded yet.
                 </p>
               )}
             </section>
